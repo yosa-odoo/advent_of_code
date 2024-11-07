@@ -31,14 +31,29 @@ WITH parsed_games AS (
      FROM split_games as sg
 
 ),
-    filtered_games AS (
-        SELECT game_id
+-- PART 1
+--     filtered_games AS (
+--         SELECT game_id
+--         FROM colour_count
+--         GROUP BY game_id
+--         HAVING MAX(red_count) <= 12
+--            AND MAX(green_count) <= 13
+--            AND MAX(blue_count) <= 14
+-- )
+--
+-- SELECT SUM(game_id)
+-- FROM filtered_games;
+
+-- PART 2
+    fewest_needed AS (
+        SELECT
+            game_id,
+            MAX(red_count) AS min_red_needed,
+            MAX(green_count) AS min_green_needed,
+            MAX(blue_count) AS min_blue_needed
         FROM colour_count
         GROUP BY game_id
-        HAVING MAX(red_count) <= 12
-           AND MAX(green_count) <= 13
-           AND MAX(blue_count) <= 14
 )
 
-SELECT SUM(game_id)
-FROM filtered_games;
+SELECT SUM(min_red_needed * min_green_needed * min_blue_needed)
+FROM fewest_needed;
