@@ -20,8 +20,8 @@ FROM day03.input, string_to_table(line, NULL) AS value;
 CREATE TABLE day03.schematic_unit AS
     SELECT
         day03.input_grid_cell.*,
-        substring(day03.input.line FROM row::int - 1 for 1) AS preceding,
-        substring(day03.input.line FROM row::int) AS following
+        substring(day03.input.line FROM row::INTEGER - 1 FOR 1) AS preceding,
+        substring(day03.input.line FROM row::INTEGER) AS following
     FROM day03.input_grid_cell
     JOIN day03.input ON line_number = col;
 
@@ -29,12 +29,11 @@ CREATE TABLE day03.part_number AS
     SELECT
         row,
         col,
-        match[1] AS value
+        regexp_substr(following, '^\d+') as value   -- SELECT regexp_substr('467..114..', '^\d+'); -> 467
     FROM day03.schematic_unit
-        CROSS JOIN regexp_match(following, '^\d+') AS match
     WHERE
-        (preceding = '' or regexp_like(preceding, '\D'))
-        AND regexp_like(value, '\d');
+        regexp_like(value, '\d')
+        AND (preceding = '' or regexp_like(preceding, '\D'));
 
 CREATE TABLE day03.part AS
     SELECT *
