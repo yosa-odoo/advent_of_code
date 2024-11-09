@@ -2,7 +2,7 @@ DROP SCHEMA IF EXISTS day04 CASCADE;
 CREATE SCHEMA day04;
 
 CREATE TABLE day04.raw_input (line TEXT);
-\copy day04.raw_input FROM 'example.txt';
+\copy day04.raw_input FROM 'input.txt';
 
 CREATE TABLE day04.input AS
 SELECT
