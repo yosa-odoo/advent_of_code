@@ -2,7 +2,7 @@ DROP SCHEMA IF EXISTS day05 CASCADE;
 CREATE SCHEMA day05;
 
 CREATE TABLE day05.raw_input (line TEXT);
-\copy day05.raw_input FROM 'input.txt';
+\copy day05.raw_input FROM 'example.txt';
 
 CREATE TABLE day05.input AS
     SELECT
@@ -42,29 +42,4 @@ CREATE TABLE day05.mapping AS
             FROM regexp_split_to_array(line, '\s+') as parts
     )
     WHERE section_number > 1 AND NOT is_section_header;
-
-CREATE FUNCTION day05.apply_mappings(
-    n BIGINT,
-    mappings day05.mapping[],
-    seed_number BIGINT
-)
-RETURNS BIGINT
-AS $$
-BEGIN
-    RETURN COALESCE(
-        (
-            SELECT COALESCE(n, seed_number) + mapping.delta
-            FROM UNNEST(mappings) AS mapping
-            WHERE mapping.range @> COALESCE(n, seed_number)
-        ),
-        n,
-        seed_number
-    );
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE AGGREGATE day05.apply_mappings (day05.mapping[], bigint) (
-    sfunc = day05.apply_mappings,
-    stype = bigint
-);
 

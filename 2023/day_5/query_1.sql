@@ -1,5 +1,31 @@
 \include_relative 'common.sql'
 
+
+-- FUNCTIONS
+CREATE FUNCTION day05.apply_mappings(
+    n BIGINT,
+    mappings day05.mapping[],
+    seed_number BIGINT
+) RETURNS BIGINT
+AS $$
+    SELECT COALESCE(
+        (
+            SELECT COALESCE(n, seed_number) + mapping.delta
+            FROM UNNEST(mappings) AS mapping
+            WHERE mapping.range @> COALESCE(n, seed_number)
+        ),
+        n,
+        seed_number
+    );
+$$ LANGUAGE sql;
+
+CREATE AGGREGATE day05.apply_mappings (day05.mapping[], bigint) (
+    sfunc = day05.apply_mappings,
+    stype = bigint
+);
+-- __________________
+
+
 CREATE TABLE day05.seeds AS
     SELECT parts[1]::bigint AS seed
     FROM day05.input_section,
