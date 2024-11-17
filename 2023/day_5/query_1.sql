@@ -32,10 +32,11 @@ CREATE TABLE day05.seeds AS
          LATERAL regexp_matches(line, '\d+', 'g') AS parts
     WHERE section_number = 1;
 
+
 CREATE TABLE day05.seed_location AS
 SELECT
     seed,
-    day05.apply_mappings(mappings, seed ORDER BY mapping_number) AS location
+    day05.apply_mappings( mappings, seed ORDER BY mapping_number) AS location -- apparently we don't care if the first argument is not given
 FROM
     day05.seeds
 CROSS JOIN LATERAL (

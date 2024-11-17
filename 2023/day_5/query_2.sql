@@ -1,5 +1,9 @@
 \include_relative 'common.sql'
 
+-- Implementation of Python algorithm used in https://www.youtube.com/watch?v=iqTopXV13LE
+-- Using Allen's intervals: see readme.md for visual details
+-- We'll need to apply a delta only on the intersection, th ebefore and after will be kept as it for next iteration
+
 CREATE TABLE day05.seed_ranges AS
 WITH seeds AS (
     SELECT parts[1]::bigint AS seed
@@ -22,77 +26,21 @@ WITH seeds AS (
 -- range_agg ( value anymultirange ) → anymultirange
 --      Computes the union of the non-null input values.
 SELECT
-    unnest(range_agg(int8range(seed, seed + range, '(]'))) as seed_range
+    unnest(range_agg(int8range(seed, seed + range))) as seed_range
 FROM seed_range;
 
--- we want to inverse the delta to take the mapping path in reverse
-ALTER TABLE day05.mapping ADD COLUMN inverted_range int8range;
-UPDATE day05.mapping
-SET
-    delta = - delta,
-    inverted_range = int8range(
-            LOWER(range),
-            UPPER(range),
-            '(]'            --  We need to invert the INCL/EXCL bounds !
-);
+-- => select * from day05.seed_ranges;
+--  seed_range
+-- ------------
+--  [55,68)
+--  [79,93)
+-- (2 rows)
 
--- The ordered are now the location. We iterate through each location from the minimum one.
--- Once one of the resulting seed matches one of the seed ranges, we'll have our winning seed.
--- Well, traversing it the pther way around is not possible.
--- FUNCTIONS: different as we have to use invert_range
-CREATE FUNCTION day05.apply_mappings(
-    n BIGINT,
-    mappings day05.mapping[],
-    seed_number BIGINT
-) RETURNS BIGINT
-AS $$
-    SELECT COALESCE(
-        (
-            SELECT COALESCE(n, seed_number) + mapping.delta
-            FROM UNNEST(mappings) AS mapping
-            WHERE mapping.inverted_range @> COALESCE(n, seed_number)
-        ),
-        n,
-        seed_number
-    );
-$$ LANGUAGE sql;
-
-CREATE AGGREGATE day05.apply_mappings (day05.mapping[], bigint) (
-    sfunc = day05.apply_mappings,
-    stype = bigint
-);
-
--- _______________
-
-DO $$
-DECLARE
-    location INT := 0;
-    max_location INT := 100;
-    seed_f_result JSONB;
-BEGIN
-    WHILE location < max_location LOOP
-        SELECT day05.apply_mappings(mappings_data.mappings, location ORDER BY mapping_number DESC) as r
-        INTO seed_f_result
-        FROM LATERAL (
-            SELECT
-                mapping_number,
-                ARRAY_AGG(mapping.*) AS mappings
-            FROM day05.mapping
-            GROUP BY mapping_number
-        ) AS mappings_data;
-
-        IF EXISTS (
-            SELECT 1
-            FROM day05.seed_ranges
-            WHERE (seed_f_result->>'value')::BIGINT <@ day05.seed_ranges.seed_range
-        ) THEN
-            RAISE NOTICE 'Location: %, Seed F: %, Matched Seed Range!', location, seed_f_result;
-            EXIT;
-        ELSE
-            RAISE NOTICE 'Location: %, Seed F: %, No Match Found.', location, seed_f_result;
-        END IF;
-
-        location := location + 1;
-    END LOOP;
-END $$;
-
+-- => select * from day05.mapping;
+--  mapping_number |  range   | delta
+-- ----------------+----------+-------
+--               2 | [98,100) |   -48
+--               2 | [50,98)  |     2
+--               3 | [15,52)  |   -15
+--               3 | [52,54)  |   -15
+--               3 | [0,15)   |    39

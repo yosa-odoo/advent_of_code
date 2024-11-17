@@ -1,0 +1,1 @@
+Preparation for AOC 2024 using only PostgreSQL (maybe a bit of plpgsql)
